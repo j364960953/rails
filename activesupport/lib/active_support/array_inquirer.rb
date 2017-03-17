@@ -20,7 +20,7 @@ module ActiveSupport
     #   variants.any?(:phone, :tablet)     # => true
     #   variants.any?('phone', 'desktop')  # => true
     #   variants.any?(:desktop, :watch)    # => false
-    def any?(*candidates, &block)
+    def any?(*candidates)
       if candidates.none?
         super
       else
@@ -32,11 +32,11 @@ module ActiveSupport
 
     private
       def respond_to_missing?(name, include_private = false)
-        name[-1] == '?'
+        (name[-1] == "?") || super
       end
 
       def method_missing(name, *args)
-        if name[-1] == '?'
+        if name[-1] == "?"
           any?(name[0..-2])
         else
           super

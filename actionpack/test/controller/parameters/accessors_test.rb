@@ -1,6 +1,6 @@
-require 'abstract_unit'
-require 'action_controller/metal/strong_parameters'
-require 'active_support/core_ext/hash/transform_values'
+require "abstract_unit"
+require "action_controller/metal/strong_parameters"
+require "active_support/core_ext/hash/transform_values"
 
 class ParametersAccessorsTest < ActiveSupport::TestCase
   setup do
@@ -8,12 +8,12 @@ class ParametersAccessorsTest < ActiveSupport::TestCase
 
     @params = ActionController::Parameters.new(
       person: {
-        age: '32',
+        age: "32",
         name: {
-          first: 'David',
-          last: 'Heinemeier Hansson'
+          first: "David",
+          last: "Heinemeier Hansson"
         },
-        addresses: [{city: 'Chicago', state: 'Illinois'}]
+        addresses: [{ city: "Chicago", state: "Illinois" }]
       }
     )
   end
@@ -53,6 +53,15 @@ class ParametersAccessorsTest < ActiveSupport::TestCase
     @params.each_pair { |key, value| assert_not(value.permitted?) if key == "person" }
   end
 
+  test "empty? returns true when params contains no key/value pairs" do
+    params = ActionController::Parameters.new
+    assert params.empty?
+  end
+
+  test "empty? returns false when any params are present" do
+    refute @params.empty?
+  end
+
   test "except retains permitted status" do
     @params.permit!
     assert @params.except(:person).permitted?
@@ -73,6 +82,45 @@ class ParametersAccessorsTest < ActiveSupport::TestCase
   test "fetch retains unpermitted status" do
     assert_not @params.fetch(:person).permitted?
     assert_not @params[:person].fetch(:name).permitted?
+  end
+
+  test "has_key? returns true if the given key is present in the params" do
+    assert @params.has_key?(:person)
+  end
+
+  test "has_key? returns false if the given key is not present in the params" do
+    refute @params.has_key?(:address)
+  end
+
+  test "has_value? returns true if the given value is present in the params" do
+    params = ActionController::Parameters.new(city: "Chicago", state: "Illinois")
+    assert params.has_value?("Chicago")
+  end
+
+  test "has_value? returns false if the given value is not present in the params" do
+    params = ActionController::Parameters.new(city: "Chicago", state: "Illinois")
+    refute @params.has_value?("New York")
+  end
+
+  test "include? returns true if the given key is present in the params" do
+    assert @params.include?(:person)
+  end
+
+  test "include? returns false if the given key is not present in the params" do
+    refute @params.include?(:address)
+  end
+
+  test "key? returns true if the given key is present in the params" do
+    assert @params.key?(:person)
+  end
+
+  test "key? returns false if the given key is not present in the params" do
+    refute @params.key?(:address)
+  end
+
+  test "keys returns an array of the keys of the params" do
+    assert_equal ["person"], @params.keys
+    assert_equal ["age", "name", "addresses"], @params[:person].keys
   end
 
   test "reject retains permitted status" do
@@ -120,6 +168,21 @@ class ParametersAccessorsTest < ActiveSupport::TestCase
     assert_not @params.transform_values { |v| v }.permitted?
   end
 
+  test "value? returns true if the given value is present in the params" do
+    params = ActionController::Parameters.new(city: "Chicago", state: "Illinois")
+    assert params.value?("Chicago")
+  end
+
+  test "value? returns false if the given value is not present in the params" do
+    params = ActionController::Parameters.new(city: "Chicago", state: "Illinois")
+    refute params.value?("New York")
+  end
+
+  test "values returns an array of the values of the params" do
+    params = ActionController::Parameters.new(city: "Chicago", state: "Illinois")
+    assert_equal ["Chicago", "Illinois"], params.values
+  end
+
   test "values_at retains permitted status" do
     @params.permit!
     assert @params.values_at(:person).first.permitted?
@@ -129,14 +192,6 @@ class ParametersAccessorsTest < ActiveSupport::TestCase
   test "values_at retains unpermitted status" do
     assert_not @params.values_at(:person).first.permitted?
     assert_not @params[:person].values_at(:name).first.permitted?
-  end
-
-  test "equality with a hash is deprecated" do
-    hash1 = { foo: :bar }
-    params1 = ActionController::Parameters.new(hash1)
-    assert_deprecated("will be removed in Rails 5.1") do
-      assert(params1 == hash1)
-    end
   end
 
   test "is equal to Parameters instance with same params" do
@@ -158,7 +213,7 @@ class ParametersAccessorsTest < ActiveSupport::TestCase
     assert(params2 == params1)
   end
 
-  test 'is not equal to an unpermitted Parameters instance with same params' do
+  test "is not equal to an unpermitted Parameters instance with same params" do
     params1 = ActionController::Parameters.new(a: 1).permit(:a)
     params2 = ActionController::Parameters.new(a: 1)
     assert(params1 != params2)
@@ -173,7 +228,7 @@ class ParametersAccessorsTest < ActiveSupport::TestCase
   end
 
   test "equality with simple types works" do
-    assert(@params != 'Hello')
+    assert(@params != "Hello")
     assert(@params != 42)
     assert(@params != false)
   end

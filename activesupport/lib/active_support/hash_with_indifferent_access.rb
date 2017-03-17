@@ -1,5 +1,5 @@
-require 'active_support/core_ext/hash/keys'
-require 'active_support/core_ext/hash/reverse_merge'
+require "active_support/core_ext/hash/keys"
+require "active_support/core_ext/hash/reverse_merge"
 
 module ActiveSupport
   # Implements a hash where keys <tt>:foo</tt> and <tt>"foo"</tt> are considered
@@ -40,6 +40,12 @@ module ActiveSupport
   #   rgb = { black: '#000000', white: '#FFFFFF' }.with_indifferent_access
   #
   # which may be handy.
+  #
+  # To access this class outside of Rails, require the core extension with:
+  #
+  #   require "active_support/core_ext/hash/indifferent_access"
+  #
+  # which will, in turn, require this file.
   class HashWithIndifferentAccess < Hash
     # Returns +true+ so that <tt>Array#extract_options!</tt> finds members of
     # this class.
@@ -76,15 +82,6 @@ module ActiveSupport
       else
         super
       end
-    end
-
-    def self.new_from_hash_copying_default(hash)
-      ActiveSupport::Deprecation.warn(<<-MSG.squish)
-        `ActiveSupport::HashWithIndifferentAccess.new_from_hash_copying_default`
-        has been deprecated, and will be removed in Rails 5.1. The behavior of
-        this method is now identical to the behavior of `.new`.
-      MSG
-      new(hash)
     end
 
     def self.[](*args)
@@ -161,7 +158,6 @@ module ActiveSupport
     alias_method :has_key?, :key?
     alias_method :member?, :key?
 
-
     # Same as <tt>Hash#[]</tt> where the key passed as argument can be
     # either a string or a symbol:
     #
@@ -217,7 +213,7 @@ module ActiveSupport
     # modify the receiver but rather returns a new hash with indifferent
     # access with the result of the merge.
     def merge(hash, &block)
-      self.dup.update(hash, &block)
+      dup.update(hash, &block)
     end
 
     # Like +merge+ but the other way around: Merges the receiver into the
@@ -232,7 +228,7 @@ module ActiveSupport
 
     # Same semantics as +reverse_merge+ but modifies the receiver in-place.
     def reverse_merge!(other_hash)
-      replace(reverse_merge( other_hash ))
+      replace(reverse_merge(other_hash))
     end
 
     # Replaces the contents of this hash with other_hash.
@@ -268,6 +264,15 @@ module ActiveSupport
       dup.tap { |hash| hash.reject!(*args, &block) }
     end
 
+    def transform_values(*args, &block)
+      return to_enum(:transform_values) unless block_given?
+      dup.tap { |hash| hash.transform_values!(*args, &block) }
+    end
+
+    def compact
+      dup.tap(&:compact!)
+    end
+
     # Convert to a regular hash with string keys.
     def to_hash
       _new_hash = Hash.new
@@ -279,12 +284,12 @@ module ActiveSupport
       _new_hash
     end
 
-    protected
-      def convert_key(key)
+    private
+      def convert_key(key) # :doc:
         key.kind_of?(Symbol) ? key.to_s : key
       end
 
-      def convert_value(value, options = {})
+      def convert_value(value, options = {}) # :doc:
         if value.is_a? Hash
           if options[:for] == :to_hash
             value.to_hash
@@ -301,7 +306,7 @@ module ActiveSupport
         end
       end
 
-      def set_defaults(target)
+      def set_defaults(target) # :doc:
         if default_proc
           target.default_proc = default_proc.dup
         else
@@ -310,5 +315,7 @@ module ActiveSupport
       end
   end
 end
+
+# :stopdoc:
 
 HashWithIndifferentAccess = ActiveSupport::HashWithIndifferentAccess

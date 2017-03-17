@@ -1,5 +1,5 @@
-require 'active_support/core_ext/module/aliasing'
-require 'active_support/core_ext/array/extract_options'
+require "active_support/core_ext/module/aliasing"
+require "active_support/core_ext/array/extract_options"
 
 module ActiveSupport
   class Deprecation
@@ -18,7 +18,7 @@ module ActiveSupport
       #
       # Using the default deprecator:
       #   ActiveSupport::Deprecation.deprecate_methods(Fred, :aaa, bbb: :zzz, ccc: 'use Bar#ccc instead')
-      #   # => [:aaa, :bbb, :ccc]
+      #   # => Fred
       #
       #   Fred.aaa
       #   # DEPRECATION WARNING: aaa is deprecated and will be removed from Rails 5.1. (called from irb_binding at (irb):10)

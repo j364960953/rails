@@ -1,10 +1,11 @@
-require 'helper'
+require "helper"
 require "active_support/log_subscriber/test_helper"
-require 'active_support/core_ext/numeric/time'
-require 'jobs/hello_job'
-require 'jobs/logging_job'
-require 'jobs/nested_job'
-require 'models/person'
+require "active_support/core_ext/numeric/time"
+require "jobs/hello_job"
+require "jobs/logging_job"
+require "jobs/overridden_logging_job"
+require "jobs/nested_job"
+require "models/person"
 
 class LoggingTest < ActiveSupport::TestCase
   include ActiveSupport::LogSubscriber::TestHelper
@@ -40,7 +41,6 @@ class LoggingTest < ActiveSupport::TestCase
   def set_logger(logger)
     ActiveJob::Base.logger = logger
   end
-
 
   def test_uses_active_job_as_tag
     HelloJob.perform_later "Cristian"
@@ -89,21 +89,21 @@ class LoggingTest < ActiveSupport::TestCase
 
   def test_perform_job_logging
     LoggingJob.perform_later "Dummy"
-    assert_match(/Performing LoggingJob from .*? with arguments:.*Dummy/, @logger.messages)
+    assert_match(/Performing LoggingJob \(Job ID: .*?\) from .*? with arguments:.*Dummy/, @logger.messages)
     assert_match(/Dummy, here is it: Dummy/, @logger.messages)
-    assert_match(/Performed LoggingJob from .*? in .*ms/, @logger.messages)
+    assert_match(/Performed LoggingJob \(Job ID: .*?\) from .*? in .*ms/, @logger.messages)
   end
 
   def test_perform_nested_jobs_logging
     NestedJob.perform_later
     assert_match(/\[LoggingJob\] \[.*?\]/, @logger.messages)
     assert_match(/\[ActiveJob\] Enqueued NestedJob \(Job ID: .*\) to/, @logger.messages)
-    assert_match(/\[ActiveJob\] \[NestedJob\] \[NESTED-JOB-ID\] Performing NestedJob from/, @logger.messages)
+    assert_match(/\[ActiveJob\] \[NestedJob\] \[NESTED-JOB-ID\] Performing NestedJob \(Job ID: .*?\) from/, @logger.messages)
     assert_match(/\[ActiveJob\] \[NestedJob\] \[NESTED-JOB-ID\] Enqueued LoggingJob \(Job ID: .*?\) to .* with arguments: "NestedJob"/, @logger.messages)
-    assert_match(/\[ActiveJob\].*\[LoggingJob\] \[LOGGING-JOB-ID\] Performing LoggingJob from .* with arguments: "NestedJob"/, @logger.messages)
+    assert_match(/\[ActiveJob\].*\[LoggingJob\] \[LOGGING-JOB-ID\] Performing LoggingJob \(Job ID: .*?\) from .* with arguments: "NestedJob"/, @logger.messages)
     assert_match(/\[ActiveJob\].*\[LoggingJob\] \[LOGGING-JOB-ID\] Dummy, here is it: NestedJob/, @logger.messages)
-    assert_match(/\[ActiveJob\].*\[LoggingJob\] \[LOGGING-JOB-ID\] Performed LoggingJob from .* in/, @logger.messages)
-    assert_match(/\[ActiveJob\] \[NestedJob\] \[NESTED-JOB-ID\] Performed NestedJob from .* in/, @logger.messages)
+    assert_match(/\[ActiveJob\].*\[LoggingJob\] \[LOGGING-JOB-ID\] Performed LoggingJob \(Job ID: .*?\) from .* in/, @logger.messages)
+    assert_match(/\[ActiveJob\] \[NestedJob\] \[NESTED-JOB-ID\] Performed NestedJob \(Job ID: .*?\) from .* in/, @logger.messages)
   end
 
   def test_enqueue_at_job_logging
@@ -118,5 +118,10 @@ class LoggingTest < ActiveSupport::TestCase
     assert_match(/Enqueued HelloJob \(Job ID: .*\) to .*? at.*Cristian/, @logger.messages)
   rescue NotImplementedError
     skip
+  end
+
+  def test_for_tagged_logger_support_is_consistent
+    set_logger ::Logger.new(nil)
+    OverriddenLoggingJob.perform_later "Dummy"
   end
 end

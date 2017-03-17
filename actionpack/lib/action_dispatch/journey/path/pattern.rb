@@ -4,7 +4,7 @@ module ActionDispatch
       class Pattern # :nodoc:
         attr_reader :spec, :requirements, :anchored
 
-        def self.from_string string
+        def self.from_string(string)
           build(string, {}, "/.?", true)
         end
 
@@ -29,6 +29,13 @@ module ActionDispatch
 
         def build_formatter
           Visitors::FormatBuilder.new.accept(spec)
+        end
+
+        def eager_load!
+          required_names
+          offsets
+          to_regexp
+          nil
         end
 
         def ast
@@ -98,7 +105,7 @@ module ActionDispatch
           end
 
           def visit_STAR(node)
-            re = @matchers[node.left.to_sym] || '.+'
+            re = @matchers[node.left.to_sym] || ".+"
             "(#{re})"
           end
 
@@ -175,7 +182,7 @@ module ActionDispatch
 
               if @requirements.key?(node)
                 re = /#{@requirements[node]}|/
-                @offsets.push((re.match('').length - 1) + @offsets.last)
+                @offsets.push((re.match("").length - 1) + @offsets.last)
               else
                 @offsets << @offsets.last
               end

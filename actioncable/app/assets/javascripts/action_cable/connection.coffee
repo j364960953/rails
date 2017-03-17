@@ -23,11 +23,11 @@ class ActionCable.Connection
   open: =>
     if @isActive()
       ActionCable.log("Attempted to open WebSocket, but existing socket is #{@getState()}")
-      throw new Error("Existing connection must be closed before opening")
+      false
     else
       ActionCable.log("Opening WebSocket, current state is #{@getState()}, subprotocols: #{protocols}")
       @uninstallEventHandlers() if @webSocket?
-      @webSocket = new WebSocket(@consumer.url, protocols)
+      @webSocket = new ActionCable.WebSocket(@consumer.url, protocols)
       @installEventHandlers()
       @monitor.start()
       true

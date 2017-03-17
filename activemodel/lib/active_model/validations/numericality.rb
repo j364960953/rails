@@ -1,5 +1,4 @@
 module ActiveModel
-
   module Validations
     class NumericalityValidator < EachValidator # :nodoc:
       CHECKS = { greater_than: :>, greater_than_or_equal_to: :>=,
@@ -26,8 +25,6 @@ module ActiveModel
         if record_attribute_changed_in_place?(record, attr_name)
           raw_value = value
         end
-
-        return if options[:allow_nil] && raw_value.nil?
 
         unless is_number?(raw_value)
           record.errors.add(attr_name, :not_a_number, filtered_options(raw_value))
@@ -64,7 +61,7 @@ module ActiveModel
         end
       end
 
-    protected
+    private
 
       def is_number?(raw_value)
         !parse_raw_value_as_a_number(raw_value).nil?
@@ -96,8 +93,6 @@ module ActiveModel
           options[:only_integer]
         end
       end
-
-      private
 
       def record_attribute_changed_in_place?(record, attr_name)
         record.respond_to?(:attribute_changed_in_place?) &&
@@ -139,7 +134,7 @@ module ActiveModel
       #
       # There is also a list of default options supported by every validator:
       # +:if+, +:unless+, +:on+, +:allow_nil+, +:allow_blank+, and +:strict+ .
-      # See <tt>ActiveModel::Validation#validates</tt> for more information
+      # See <tt>ActiveModel::Validations#validates</tt> for more information
       #
       # The following checks can also be supplied with a proc or a symbol which
       # corresponds to a method:

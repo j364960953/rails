@@ -1,7 +1,7 @@
-require 'cgi'
-require 'action_view/helpers/tag_helper'
-require 'active_support/core_ext/string/output_safety'
-require 'active_support/core_ext/module/attribute_accessors'
+require "cgi"
+require "action_view/helpers/tag_helper"
+require "active_support/core_ext/string/output_safety"
+require "active_support/core_ext/module/attribute_accessors"
 
 module ActionView
   # = Action View Form Tag Helpers
@@ -134,11 +134,11 @@ module ActionView
 
         if options.include?(:include_blank)
           include_blank = options.delete(:include_blank)
-          options_for_blank_options_tag = { value: '' }
+          options_for_blank_options_tag = { value: "" }
 
           if include_blank == true
-            include_blank = ''
-            options_for_blank_options_tag[:label] = ' '
+            include_blank = ""
+            options_for_blank_options_tag[:label] = " "
           end
 
           if include_blank
@@ -147,7 +147,7 @@ module ActionView
         end
 
         if prompt = options.delete(:prompt)
-          option_tags = content_tag("option".freeze, prompt, value: '').safe_concat(option_tags)
+          option_tags = content_tag("option".freeze, prompt, value: "").safe_concat(option_tags)
         end
 
         content_tag "select".freeze, option_tags, { "name" => html_name, "id" => sanitize_to_id(name) }.update(options.stringify_keys)
@@ -442,26 +442,14 @@ module ActionView
       #   # => <input name='commit' type='submit' value='Save' data-disable-with="Save" data-confirm="Are you sure?" />
       #
       def submit_tag(value = "Save changes", options = {})
-        options = options.stringify_keys
+        options = options.deep_stringify_keys
         tag_options = { "type" => "submit", "name" => "commit", "value" => value }.update(options)
-
-        if ActionView::Base.automatically_disable_submit_tag
-          unless tag_options["data-disable-with"] == false || (tag_options["data"] && tag_options["data"][:disable_with] == false)
-            disable_with_text = tag_options["data-disable-with"]
-            disable_with_text ||= tag_options["data"][:disable_with] if tag_options["data"]
-            disable_with_text ||= value.to_s.clone
-            tag_options.deep_merge!("data" => { "disable_with" => disable_with_text })
-          else
-            tag_options["data"].delete(:disable_with) if tag_options["data"]
-          end
-          tag_options.delete("data-disable-with")
-        end
-
+        set_default_disable_with value, tag_options
         tag :input, tag_options
       end
 
       # Creates a button element that defines a <tt>submit</tt> button,
-      # <tt>reset</tt>button or a generic button which can be used in
+      # <tt>reset</tt> button or a generic button which can be used in
       # JavaScript, for example. You can use the button tag as a regular
       # submit tag but it isn't supported in legacy browsers. However,
       # the button tag does allow for richer labels such as images and emphasis,
@@ -518,12 +506,12 @@ module ActionView
           options ||= {}
         end
 
-        options = { 'name' => 'button', 'type' => 'submit' }.merge!(options.stringify_keys)
+        options = { "name" => "button", "type" => "submit" }.merge!(options.stringify_keys)
 
         if block_given?
           content_tag :button, options, &block
         else
-          content_tag :button, content_or_options || 'Button', options
+          content_tag :button, content_or_options || "Button", options
         end
       end
 
@@ -685,21 +673,6 @@ module ActionView
         text_field_tag(name, value, options.merge(type: :time))
       end
 
-      # Creates a text field of type "datetime".
-      #
-      # === Options
-      # * <tt>:min</tt> - The minimum acceptable value.
-      # * <tt>:max</tt> - The maximum acceptable value.
-      # * <tt>:step</tt> - The acceptable value granularity.
-      # * Otherwise accepts the same options as text_field_tag.
-      def datetime_field_tag(name, value = nil, options = {})
-        ActiveSupport::Deprecation.warn(<<-MESSAGE.squish)
-          datetime_field_tag is deprecated and will be removed in Rails 5.1.
-          Use datetime_local_field_tag instead.
-        MESSAGE
-        text_field_tag(name, value, options.merge(type: :datetime))
-      end
-
       # Creates a text field of type "datetime-local".
       #
       # === Options
@@ -707,9 +680,11 @@ module ActionView
       # * <tt>:max</tt> - The maximum acceptable value.
       # * <tt>:step</tt> - The acceptable value granularity.
       # * Otherwise accepts the same options as text_field_tag.
-      def datetime_local_field_tag(name, value = nil, options = {})
-        text_field_tag(name, value, options.merge(type: 'datetime-local'))
+      def datetime_field_tag(name, value = nil, options = {})
+        text_field_tag(name, value, options.merge(type: "datetime-local"))
       end
+
+      alias datetime_local_field_tag datetime_field_tag
 
       # Creates a text field of type "month".
       #
@@ -870,11 +845,12 @@ module ActionView
           authenticity_token = html_options.delete("authenticity_token")
           method = html_options.delete("method").to_s.downcase
 
-          method_tag = case method
-            when 'get'
+          method_tag = \
+            case method
+            when "get"
               html_options["method"] = "get"
-              ''
-            when 'post', ''
+              ""
+            when "post", ""
               html_options["method"] = "post"
               token_tag(authenticity_token, form_options: {
                 action: html_options["action"],
@@ -886,7 +862,7 @@ module ActionView
                 action: html_options["action"],
                 method: method
               })
-          end
+            end
 
           if html_options.delete("enforce_utf8") { true }
             utf8_enforcer_tag + method_tag
@@ -908,7 +884,23 @@ module ActionView
 
         # see http://www.w3.org/TR/html4/types.html#type-name
         def sanitize_to_id(name)
-          name.to_s.delete(']').tr('^-a-zA-Z0-9:.', "_")
+          name.to_s.delete("]").tr("^-a-zA-Z0-9:.", "_")
+        end
+
+        def set_default_disable_with(value, tag_options)
+          return unless ActionView::Base.automatically_disable_submit_tag
+          data = tag_options["data"]
+
+          unless tag_options["data-disable-with"] == false || (data && data["disable_with"] == false)
+            disable_with_text = tag_options["data-disable-with"]
+            disable_with_text ||= data["disable_with"] if data
+            disable_with_text ||= value.to_s.clone
+            tag_options.deep_merge!("data" => { "disable_with" => disable_with_text })
+          else
+            data.delete("disable_with") if data
+          end
+
+          tag_options.delete("data-disable-with")
         end
     end
   end

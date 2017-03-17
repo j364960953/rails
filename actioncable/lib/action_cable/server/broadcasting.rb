@@ -38,9 +38,13 @@ module ActionCable
           end
 
           def broadcast(message)
-            server.logger.info "[ActionCable] Broadcasting to #{broadcasting}: #{message.inspect}"
-            encoded = coder ? coder.encode(message) : message
-            server.pubsub.broadcast broadcasting, encoded
+            server.logger.debug "[ActionCable] Broadcasting to #{broadcasting}: #{message.inspect}"
+
+            payload = { broadcasting: broadcasting, message: message, coder: coder }
+            ActiveSupport::Notifications.instrument("broadcast.action_cable", payload) do
+              encoded = coder ? coder.encode(message) : message
+              server.pubsub.broadcast broadcasting, encoded
+            end
           end
         end
     end

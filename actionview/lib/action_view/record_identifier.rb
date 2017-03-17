@@ -1,5 +1,5 @@
-require 'active_support/core_ext/module'
-require 'action_view/model_naming'
+require "active_support/core_ext/module"
+require "action_view/model_naming"
 
 module ActionView
   # RecordIdentifier encapsulates methods used by various ActionView helpers
@@ -57,8 +57,8 @@ module ActionView
 
     include ModelNaming
 
-    JOIN = '_'.freeze
-    NEW = 'new'.freeze
+    JOIN = "_".freeze
+    NEW = "new".freeze
 
     # The DOM class convention is to use the singular form of an object or class.
     #
@@ -92,7 +92,7 @@ module ActionView
       end
     end
 
-  protected
+  private
 
     # Returns a string representation of the key attribute(s) that is suitable for use in an HTML DOM id.
     # This can be overwritten to customize the default generated string representation if desired.
@@ -102,7 +102,7 @@ module ActionView
     # overwritten version of the method. By default, this implementation passes the key string through a
     # method that replaces all characters that are invalid inside DOM ids, with valid ones. You need to
     # make sure yourself that your dom ids are valid, in case you overwrite this method.
-    def record_key_for_dom_id(record)
+    def record_key_for_dom_id(record) # :doc:
       key = convert_to_model(record).to_key
       key ? key.join(JOIN) : key
     end

@@ -38,10 +38,12 @@ module ActiveRecord
       def insert_record(record, validate = true, raise = false)
         ensure_not_nested
 
-        if raise
-          record.save!(:validate => validate)
-        else
-          return unless record.save(:validate => validate)
+        if record.new_record? || record.has_changes_to_save?
+          if raise
+            record.save!(validate: validate)
+          else
+            return unless record.save(validate: validate)
+          end
         end
 
         save_through_record(record)
@@ -86,7 +88,10 @@ module ActiveRecord
         end
 
         def save_through_record(record)
-          build_through_record(record).save!
+          association = build_through_record(record)
+          if association.changed?
+            association.save!
+          end
         ensure
           @through_records.delete(record.object_id)
         end
@@ -146,7 +151,7 @@ module ActiveRecord
               stmt.from scope.klass.arel_table
               stmt.wheres = arel.constraints
 
-              count = scope.klass.connection.delete(stmt, 'SQL', scope.bound_attributes)
+              count = scope.klass.connection.delete(stmt, "SQL", scope.bound_attributes)
             end
           when :nullify
             count = scope.update_all(source_reflection.foreign_key => nil)
@@ -196,7 +201,7 @@ module ActiveRecord
 
         def find_target
           return [] unless target_reflection_has_associated_record?
-          get_records
+          super
         end
 
         # NOTE - not sure that we can actually cope with inverses here

@@ -1,9 +1,8 @@
-require 'active_support/core_ext/array/extract_options'
-require 'active_support/core_ext/hash/keys'
-require 'active_support/core_ext/hash/except'
+require "active_support/core_ext/array/extract_options"
+require "active_support/core_ext/hash/keys"
+require "active_support/core_ext/hash/except"
 
 module ActiveModel
-
   # == Active \Model \Validations
   #
   # Provides a full validation framework to your objects.
@@ -51,7 +50,7 @@ module ActiveModel
       define_callbacks :validate, scope: :name
 
       class_attribute :_validators, instance_writer: false
-      self._validators = Hash.new { |h,k| h[k] = [] }
+      self._validators = Hash.new { |h, k| h[k] = [] }
     end
 
     module ClassMethods
@@ -69,7 +68,7 @@ module ActiveModel
       #
       # Options:
       # * <tt>:on</tt> - Specifies the contexts where this validation is active.
-      #   Runs in all validation contexts by default (nil). You can pass a symbol
+      #   Runs in all validation contexts by default +nil+. You can pass a symbol
       #   or an array of symbols. (e.g. <tt>on: :create</tt> or
       #   <tt>on: :custom_validation_context</tt> or
       #   <tt>on: [:create, :custom_validation_context]</tt>)
@@ -135,7 +134,7 @@ module ActiveModel
       #
       # Options:
       # * <tt>:on</tt> - Specifies the contexts where this validation is active.
-      #   Runs in all validation contexts by default (nil). You can pass a symbol
+      #   Runs in all validation contexts by default +nil+. You can pass a symbol
       #   or an array of symbols. (e.g. <tt>on: :create</tt> or
       #   <tt>on: :custom_validation_context</tt> or
       #   <tt>on: [:create, :custom_validation_context]</tt>)
@@ -304,8 +303,6 @@ module ActiveModel
     # Runs all the specified validations and returns +true+ if no errors were
     # added otherwise +false+.
     #
-    # Aliased as validate.
-    #
     #   class Person
     #     include ActiveModel::Validations
     #
@@ -402,14 +399,14 @@ module ActiveModel
     #   end
     alias :read_attribute_for_validation :send
 
-  protected
+  private
 
-    def run_validations! #:nodoc:
+    def run_validations!
       _run_validate_callbacks
       errors.empty?
     end
 
-    def raise_validation_error
+    def raise_validation_error # :doc:
       raise(ValidationError.new(self))
     end
   end

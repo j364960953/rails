@@ -1,6 +1,6 @@
-require 'abstract_unit'
-require 'active_support/core_ext/marshal'
-require 'dependencies_test_helpers'
+require "abstract_unit"
+require "active_support/core_ext/marshal"
+require "dependencies_test_helpers"
 
 class MarshalTest < ActiveSupport::TestCase
   include ActiveSupport::Testing::Isolation
@@ -12,11 +12,24 @@ class MarshalTest < ActiveSupport::TestCase
   end
 
   test "that Marshal#load still works" do
-    sanity_data = ["test", [1, 2, 3], {a: [1, 2, 3]}, ActiveSupport::TestCase]
+    sanity_data = ["test", [1, 2, 3], { a: [1, 2, 3] }, ActiveSupport::TestCase]
     sanity_data.each do |obj|
       dumped = Marshal.dump(obj)
       assert_equal Marshal.method(:load).super_method.call(dumped), Marshal.load(dumped)
     end
+  end
+
+  test "that Marshal#load still works when passed a proc" do
+    example_string = "test"
+
+    example_proc = Proc.new do |o|
+      if o.is_a?(String)
+        o.capitalize!
+      end
+    end
+
+    dumped = Marshal.dump(example_string)
+    assert_equal Marshal.load(dumped, example_proc), "Test"
   end
 
   test "that a missing class is autoloaded from string" do

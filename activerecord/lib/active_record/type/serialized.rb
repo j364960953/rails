@@ -1,6 +1,8 @@
 module ActiveRecord
   module Type
     class Serialized < DelegateClass(ActiveModel::Type::Value) # :nodoc:
+      undef to_yaml if method_defined?(:to_yaml)
+
       include ActiveModel::Type::Helpers::Mutable
 
       attr_reader :subtype, :coder
@@ -43,21 +45,21 @@ module ActiveRecord
 
       def assert_valid_value(value)
         if coder.respond_to?(:assert_valid_value)
-          coder.assert_valid_value(value)
+          coder.assert_valid_value(value, action: "serialize")
         end
       end
 
       private
 
-      def default_value?(value)
-        value == coder.load(nil)
-      end
-
-      def encoded(value)
-        unless default_value?(value)
-          coder.dump(value)
+        def default_value?(value)
+          value == coder.load(nil)
         end
-      end
+
+        def encoded(value)
+          unless default_value?(value)
+            coder.dump(value)
+          end
+        end
     end
   end
 end

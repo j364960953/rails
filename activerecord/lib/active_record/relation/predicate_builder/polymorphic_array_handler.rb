@@ -21,9 +21,11 @@ module ActiveRecord
         end
       end
 
+      # TODO Change this to private once we've dropped Ruby 2.2 support.
+      # Workaround for Ruby 2.2 "private attribute?" warning.
       protected
 
-      attr_reader :predicate_builder
+        attr_reader :predicate_builder
     end
 
     class PolymorphicArrayValue # :nodoc:
@@ -41,17 +43,17 @@ module ActiveRecord
 
       private
 
-      def primary_key(value)
-        associated_table.association_primary_key(base_class(value))
-      end
+        def primary_key(value)
+          associated_table.association_primary_key(base_class(value))
+        end
 
-      def base_class(value)
-        value.class.base_class
-      end
+        def base_class(value)
+          value.class.base_class
+        end
 
-      def convert_to_id(value)
-        value._read_attribute(primary_key(value))
-      end
+        def convert_to_id(value)
+          value._read_attribute(primary_key(value))
+        end
     end
   end
 end

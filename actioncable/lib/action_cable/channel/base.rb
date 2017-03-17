@@ -1,4 +1,4 @@
-require 'set'
+require "set"
 
 module ActionCable
   module Channel
@@ -122,16 +122,16 @@ module ActionCable
           end
         end
 
-        protected
+        private
           # action_methods are cached and there is sometimes need to refresh
           # them. ::clear_action_methods! allows you to do that, so next time
           # you run action_methods, they will be recalculated.
-          def clear_action_methods!
+          def clear_action_methods! # :doc:
             @action_methods = nil
           end
 
           # Refresh the cached action_methods when a new action_method is added.
-          def method_added(name)
+          def method_added(name) # :doc:
             super
             clear_action_methods!
           end
@@ -144,13 +144,14 @@ module ActionCable
 
         # When a channel is streaming via pubsub, we want to delay the confirmation
         # transmission until pubsub subscription is confirmed.
-        @defer_subscription_confirmation = false
+        #
+        # The counter starts at 1 because it's awaiting a call to #subscribe_to_channel
+        @defer_subscription_confirmation_counter = Concurrent::AtomicFixnum.new(1)
 
         @reject_subscription = nil
         @subscription_confirmation_sent = nil
 
         delegate_connection_identifiers
-        subscribe_to_channel
       end
 
       # Extract the action name from the passed data and process it via the channel. The process will ensure
@@ -169,6 +170,17 @@ module ActionCable
         end
       end
 
+      # This method is called after subscription has been added to the connection
+      # and confirms or rejects the subscription.
+      def subscribe_to_channel
+        run_callbacks :subscribe do
+          subscribed
+        end
+
+        reject_subscription if subscription_rejected?
+        ensure_confirmation_sent
+      end
+
       # Called by the cable connection when it's cut, so the channel has a chance to cleanup with callbacks.
       # This method is not intended to be called directly by the user. Instead, overwrite the #unsubscribed callback.
       def unsubscribe_from_channel # :nodoc:
@@ -177,24 +189,23 @@ module ActionCable
         end
       end
 
-
-      protected
+      private
         # Called once a consumer has become a subscriber of the channel. Usually the place to setup any streams
         # you want this channel to be sending to the subscriber.
-        def subscribed
+        def subscribed # :doc:
           # Override in subclasses
         end
 
         # Called once a consumer has cut its cable connection. Can be used for cleaning up connections or marking
         # users as offline or the like.
-        def unsubscribed
+        def unsubscribed # :doc:
           # Override in subclasses
         end
 
         # Transmit a hash of data to the subscriber. The hash will automatically be wrapped in a JSON envelope with
         # the proper channel identifier marked as the recipient.
-        def transmit(data, via: nil)
-          logger.info "#{self.class.name} transmitting #{data.inspect.truncate(300)}".tap { |m| m << " (via #{via})" if via }
+        def transmit(data, via: nil) # :doc:
+          logger.debug "#{self.class.name} transmitting #{data.inspect.truncate(300)}".tap { |m| m << " (via #{via})" if via }
 
           payload = { channel_class: self.class.name, data: data, via: via }
           ActiveSupport::Notifications.instrument("transmit.action_cable", payload) do
@@ -202,27 +213,32 @@ module ActionCable
           end
         end
 
-        def defer_subscription_confirmation!
-          @defer_subscription_confirmation = true
+        def ensure_confirmation_sent # :doc:
+          return if subscription_rejected?
+          @defer_subscription_confirmation_counter.decrement
+          transmit_subscription_confirmation unless defer_subscription_confirmation?
         end
 
-        def defer_subscription_confirmation?
-          @defer_subscription_confirmation
+        def defer_subscription_confirmation! # :doc:
+          @defer_subscription_confirmation_counter.increment
         end
 
-        def subscription_confirmation_sent?
+        def defer_subscription_confirmation? # :doc:
+          @defer_subscription_confirmation_counter.value > 0
+        end
+
+        def subscription_confirmation_sent? # :doc:
           @subscription_confirmation_sent
         end
 
-        def reject
+        def reject # :doc:
           @reject_subscription = true
         end
 
-        def subscription_rejected?
+        def subscription_rejected? # :doc:
           @reject_subscription
         end
 
-      private
         def delegate_connection_identifiers
           connection.identifiers.each do |identifier|
             define_singleton_method(identifier) do
@@ -231,24 +247,12 @@ module ActionCable
           end
         end
 
-        def subscribe_to_channel
-          run_callbacks :subscribe do
-            subscribed
-          end
-
-          if subscription_rejected?
-            reject_subscription
-          else
-            transmit_subscription_confirmation unless defer_subscription_confirmation?
-          end
-        end
-
         def extract_action(data)
-          (data['action'].presence || :receive).to_sym
+          (data["action"].presence || :receive).to_sym
         end
 
         def processable_action?(action)
-          self.class.action_methods.include?(action.to_s)
+          self.class.action_methods.include?(action.to_s) unless subscription_rejected?
         end
 
         def dispatch_action(action, data)
@@ -263,7 +267,7 @@ module ActionCable
 
         def action_signature(action, data)
           "#{self.class.name}##{action}".tap do |signature|
-            if (arguments = data.except('action')).any?
+            if (arguments = data.except("action")).any?
               signature << "(#{arguments.inspect})"
             end
           end

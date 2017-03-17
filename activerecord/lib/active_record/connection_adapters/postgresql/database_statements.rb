@@ -4,21 +4,17 @@ module ActiveRecord
       module DatabaseStatements
         def explain(arel, binds = [])
           sql = "EXPLAIN #{to_sql(arel, binds)}"
-          PostgreSQL::ExplainPrettyPrinter.new.pp(exec_query(sql, 'EXPLAIN', binds))
+          PostgreSQL::ExplainPrettyPrinter.new.pp(exec_query(sql, "EXPLAIN", binds))
         end
 
-        def select_value(arel, name = nil, binds = [])
-          arel, binds = binds_from_relation arel, binds
-          sql = to_sql(arel, binds)
-          execute_and_clear(sql, name, binds) do |result|
+        def select_value(arel, name = nil, binds = []) # :nodoc:
+          select_result(arel, name, binds) do |result|
             result.getvalue(0, 0) if result.ntuples > 0 && result.nfields > 0
           end
         end
 
-        def select_values(arel, name = nil, binds = [])
-          arel, binds = binds_from_relation arel, binds
-          sql = to_sql(arel, binds)
-          execute_and_clear(sql, name, binds) do |result|
+        def select_values(arel, name = nil, binds = []) # :nodoc:
+          select_result(arel, name, binds) do |result|
             if result.nfields > 0
               result.column_values(0)
             else
@@ -29,8 +25,8 @@ module ActiveRecord
 
         # Executes a SELECT query and returns an array of rows. Each row is an
         # array of field values.
-        def select_rows(sql, name = nil, binds = [])
-          execute_and_clear(sql, name, binds) do |result|
+        def select_rows(arel, name = nil, binds = []) # :nodoc:
+          select_result(arel, name, binds) do |result|
             result.values
           end
         end
@@ -74,9 +70,9 @@ module ActiveRecord
               #  (2) $12.345.678,12
               case data
               when /^-?\D+[\d,]+\.\d{2}$/  # (1)
-                data.gsub!(/[^-\d.]/, '')
+                data.gsub!(/[^-\d.]/, "")
               when /^-?\D+[\d.]+,\d{2}$/  # (2)
-                data.gsub!(/[^-\d,]/, '').sub!(/,/, '.')
+                data.gsub!(/[^-\d,]/, "").sub!(/,/, ".")
               end
             end
           end
@@ -85,21 +81,25 @@ module ActiveRecord
         # Queries the database and returns the results in an Array-like object
         def query(sql, name = nil) #:nodoc:
           log(sql, name) do
-            result_as_array @connection.async_exec(sql)
+            ActiveSupport::Dependencies.interlock.permit_concurrent_loads do
+              result_as_array @connection.async_exec(sql)
+            end
           end
         end
 
-        # Executes an SQL statement, returning a PGresult object on success
-        # or raising a PGError exception otherwise.
-        # Note: the PGresult object is manually memory managed; if you don't
-        # need it specifically, you many want consider the exec_query wrapper.
+        # Executes an SQL statement, returning a PG::Result object on success
+        # or raising a PG::Error exception otherwise.
+        # Note: the PG::Result object is manually memory managed; if you don't
+        # need it specifically, you may want consider the <tt>exec_query</tt> wrapper.
         def execute(sql, name = nil)
           log(sql, name) do
-            @connection.async_exec(sql)
+            ActiveSupport::Dependencies.interlock.permit_concurrent_loads do
+              @connection.async_exec(sql)
+            end
           end
         end
 
-        def exec_query(sql, name = 'SQL', binds = [], prepare: false)
+        def exec_query(sql, name = "SQL", binds = [], prepare: false)
           execute_and_clear(sql, name, binds, prepare: prepare) do |result|
             types = {}
             fields = result.fields
@@ -112,8 +112,8 @@ module ActiveRecord
           end
         end
 
-        def exec_delete(sql, name = 'SQL', binds = [])
-          execute_and_clear(sql, name, binds) {|result| result.cmd_tuples }
+        def exec_delete(sql, name = nil, binds = [])
+          execute_and_clear(sql, name, binds) { |result| result.cmd_tuples }
         end
         alias :exec_update :exec_delete
 
@@ -124,24 +124,29 @@ module ActiveRecord
             pk = primary_key(table_ref) if table_ref
           end
 
-          if pk && use_insert_returning?
+          if pk = suppress_composite_primary_key(pk)
             sql = "#{sql} RETURNING #{quote_column_name(pk)}"
           end
 
           super
         end
+        private :sql_for_insert
 
-        def exec_insert(sql, name, binds, pk = nil, sequence_name = nil)
-          val = exec_query(sql, name, binds)
-          if !use_insert_returning? && pk
+        def exec_insert(sql, name = nil, binds = [], pk = nil, sequence_name = nil)
+          if use_insert_returning? || pk == false
+            super
+          else
+            result = exec_query(sql, name, binds)
             unless sequence_name
               table_ref = extract_table_ref_from_insert_sql(sql)
-              sequence_name = default_sequence_name(table_ref, pk)
-              return val unless sequence_name
+              if table_ref
+                pk = primary_key(table_ref) if pk.nil?
+                pk = suppress_composite_primary_key(pk)
+                sequence_name = default_sequence_name(table_ref, pk)
+              end
+              return result unless sequence_name
             end
             last_insert_id_result(sequence_name)
-          else
-            val
           end
         end
 
@@ -164,6 +169,20 @@ module ActiveRecord
         def exec_rollback_db_transaction
           execute "ROLLBACK"
         end
+
+        private
+
+          def suppress_composite_primary_key(pk)
+            pk unless pk.is_a?(Array)
+          end
+
+          def select_result(arel, name, binds)
+            arel, binds = binds_from_relation(arel, binds)
+            sql = to_sql(arel, binds)
+            execute_and_clear(sql, name, binds) do |result|
+              yield result
+            end
+          end
       end
     end
   end

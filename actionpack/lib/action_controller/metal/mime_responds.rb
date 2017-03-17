@@ -1,4 +1,4 @@
-require 'abstract_controller/collector'
+require "abstract_controller/collector"
 
 module ActionController #:nodoc:
   module MimeResponds
@@ -181,8 +181,8 @@ module ActionController #:nodoc:
     #
     #   request.variant = [:tablet, :phone]
     #
-    # which will work similarly to formats and MIME types negotiation. If there will be no
-    # +:tablet+ variant declared, +:phone+ variant will be picked:
+    # This will work similarly to formats and MIME types negotiation. If there
+    # is no +:tablet+ variant declared, +:phone+ variant will be picked:
     #
     #   respond_to do |format|
     #     format.html.none
@@ -280,8 +280,8 @@ module ActionController #:nodoc:
 
         def any(*args, &block)
           if block_given?
-            if args.any? && args.none?{ |a| a == @variant }
-              args.each{ |v| @variants[v] = block }
+            if args.any? && args.none? { |a| a == @variant }
+              args.each { |v| @variants[v] = block }
             else
               @variants[:any] = block
             end

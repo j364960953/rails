@@ -8,20 +8,20 @@ module ActiveRecord
       end
 
       def create
-        raise DatabaseAlreadyExists if File.exist?(configuration['database'])
+        raise DatabaseAlreadyExists if File.exist?(configuration["database"])
 
         establish_connection configuration
         connection
       end
 
       def drop
-        require 'pathname'
-        path = Pathname.new configuration['database']
+        require "pathname"
+        path = Pathname.new configuration["database"]
         file = path.absolute? ? path.to_s : File.join(root, path)
 
         FileUtils.rm(file)
       rescue Errno::ENOENT => error
-        raise NoDatabaseError.new(error.message, error)
+        raise NoDatabaseError.new(error.message)
       end
 
       def purge
@@ -35,25 +35,27 @@ module ActiveRecord
         connection.encoding
       end
 
-      def structure_dump(filename)
-        dbfile = configuration['database']
-        `sqlite3 #{dbfile} .schema > #{filename}`
+      def structure_dump(filename, extra_flags)
+        dbfile = configuration["database"]
+        flags = extra_flags.join(" ") if extra_flags
+        `sqlite3 #{flags} #{dbfile} .schema > #{filename}`
       end
 
-      def structure_load(filename)
-        dbfile = configuration['database']
-        `sqlite3 #{dbfile} < "#{filename}"`
+      def structure_load(filename, extra_flags)
+        dbfile = configuration["database"]
+        flags = extra_flags.join(" ") if extra_flags
+        `sqlite3 #{flags} #{dbfile} < "#{filename}"`
       end
 
       private
 
-      def configuration
-        @configuration
-      end
+        def configuration
+          @configuration
+        end
 
-      def root
-        @root
-      end
+        def root
+          @root
+        end
     end
   end
 end

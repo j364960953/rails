@@ -1,4 +1,4 @@
-require 'rails/application_controller'
+require "rails/application_controller"
 
 class Rails::MailersController < Rails::ApplicationController # :nodoc:
   prepend_view_path ActionDispatch::DebugExceptions::RESCUES_TEMPLATE_PATH
@@ -14,7 +14,7 @@ class Rails::MailersController < Rails::ApplicationController # :nodoc:
   def preview
     if params[:path] == @preview.preview_name
       @page_title = "Mailer Previews for #{@preview.preview_name}"
-      render action: 'mailer'
+      render action: "mailer"
     else
       @email_action = File.basename(params[:path])
 
@@ -32,7 +32,7 @@ class Rails::MailersController < Rails::ApplicationController # :nodoc:
           end
         else
           @part = find_preferred_part(request.format, Mime[:html], Mime[:text])
-          render action: 'email', layout: false, formats: %w[html]
+          render action: "email", layout: false, formats: %w[html]
         end
       else
         raise AbstractController::ActionNotFound, "Email '#{@email_action}' not found in #{@preview.name}"
@@ -40,15 +40,15 @@ class Rails::MailersController < Rails::ApplicationController # :nodoc:
     end
   end
 
-  protected
-    def show_previews?
+  private
+    def show_previews? # :doc:
       ActionMailer::Base.show_previews
     end
 
-    def find_preview
+    def find_preview # :doc:
       candidates = []
-      params[:path].to_s.scan(%r{/|$}){ candidates << $` }
-      preview = candidates.detect{ |candidate| ActionMailer::Preview.exists?(candidate) }
+      params[:path].to_s.scan(%r{/|$}) { candidates << $` }
+      preview = candidates.detect { |candidate| ActionMailer::Preview.exists?(candidate) }
 
       if preview
         @preview = ActionMailer::Preview.find(preview)
@@ -57,19 +57,19 @@ class Rails::MailersController < Rails::ApplicationController # :nodoc:
       end
     end
 
-    def find_preferred_part(*formats)
+    def find_preferred_part(*formats) # :doc:
       formats.each do |format|
         if part = @email.find_first_mime_type(format)
           return part
         end
       end
 
-      if formats.any?{ |f| @email.mime_type == f }
+      if formats.any? { |f| @email.mime_type == f }
         @email
       end
     end
 
-    def find_part(format)
+    def find_part(format) # :doc:
       if part = @email.find_first_mime_type(format)
         part
       elsif @email.mime_type == format

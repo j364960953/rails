@@ -10,7 +10,7 @@ module ActionController #:nodoc:
     # exceptions must be shown. This method is only called when
     # consider_all_requests_local is false. By default, it returns
     # false, but someone may set it to `request.local?` so local
-    # requests in production still shows the detailed exception pages.
+    # requests in production still show the detailed exception pages.
     def show_detailed_exceptions?
       false
     end
@@ -19,7 +19,7 @@ module ActionController #:nodoc:
       def process_action(*args)
         super
       rescue Exception => exception
-        request.env['action_dispatch.show_detailed_exceptions'] ||= show_detailed_exceptions?
+        request.env["action_dispatch.show_detailed_exceptions"] ||= show_detailed_exceptions?
         rescue_with_handler(exception) || raise
       end
   end
